@@ -13,39 +13,68 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id         Int      @id @default(autoincrement())
-  name       String
-  email      String   @unique
-  password   String
-  role       Role     @default(USER)
-  policies   Policy[]
-  claims     Claim[]
-  createdAt  DateTime @default(now())
+ model User {
+  id        Int     @id @default(autoincrement())
+  name      String
+  email     String  @unique
+  password  String
+  role      String  @default("USER")  
+  createdAt DateTime @default(now())  
+
+  policies      Policy[]
+  claims        Claim[]
+  payments      Payment[]
+  notifications Notification[]
 }
+
 
 model Policy {
-  id             Int      @id @default(autoincrement())
-  user           User     @relation(fields: [userId], references: [id])
-  userId         Int
-  policyName     String
+  id              Int          @id @default(autoincrement())
+  user            User         @relation(fields: [userId], references: [id])
+  userId          Int
+  policyName      String
   coverageDetails String
-  premium        Decimal  @default(0.00)
-  status         PolicyStatus @default(ACTIVE)
-  createdAt      DateTime @default(now())
-  claims         Claim[]
+  premium         Decimal      @default(0.00)
+  status          PolicyStatus @default(ACTIVE)
+  createdAt       DateTime     @default(now())
+  claims          Claim[]
+  payments        Payment[]
 }
 
-model claim {
-  id          Int      @id @default(autoincrement())
-  user        User     @relation(fields: [userId], references: [id])
+model Claim {
+  id          Int         @id @default(autoincrement())
+  description String 
+  user        User        @relation(fields: [userId], references: [id])
   userId      Int
-  policy      Policy   @relation(fields: [policyId], references: [id])
+  policy      Policy      @relation(fields: [policyId], references: [id])
   policyId    Int
   claimReason String
-  claimAmount Decimal  @default(0.00)
+  claimAmount Decimal     @default(0.00)
   status      ClaimStatus @default(PENDING)
-  createdAt   DateTime @default(now())
+  createdAt   DateTime    @default(now())
+}
+
+model Payment {
+  id            Int      @id @default(autoincrement())
+  amount        Decimal  @default(0.00) @db.Decimal(10, 2)
+  paymentDate   DateTime @default(now())
+  paymentMethod String
+
+  policyId Int
+  policy   Policy @relation(fields: [policyId], references: [id])
+
+  userId Int // ✅ Add userId field
+  user   User @relation(fields: [userId], references: [id]) // ✅ Establish relation
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
 }
 
 enum Role {

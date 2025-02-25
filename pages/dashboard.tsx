@@ -4,6 +4,8 @@ import { useRouter } from "next/router";
 import { FaMoneyBillWave, FaFileAlt, FaBell, FaShieldAlt } from "react-icons/fa";
 import Navbar from "../components/Navbar";
 import PolicyCarousel from "@/components/PolicyCarousel";
+import Link from 'next/link';
+
 
 interface Policy {
   id: number;
@@ -47,9 +49,9 @@ export default function UserDashboard() {
     async function fetchData() {
       try {
         const [policiesRes, claimsRes, paymentsRes] = await Promise.all([
-          fetch("/api/user/policies").then((res) => res.json()),
-          fetch("/api/user/claims").then((res) => res.json()),
-          fetch("/api/user/payments").then((res) => res.json()),
+          fetch("/api/users/policies").then((res) => res.json()),
+          fetch("/api/users/claims").then((res) => res.json()),
+          fetch("/api/users/payments").then((res) => res.json()),
         ]);
 
         setPolicies(policiesRes);
@@ -85,6 +87,7 @@ export default function UserDashboard() {
         </section>
 
         {/* Claims Section */}
+        <Link href="users/claims" passHref>
         <section className="bg-white p-6 shadow-lg rounded-xl">
           <h2 className="text-xl font-semibold flex items-center gap-2 text-gray-700"><FaFileAlt /> Claims</h2>
           <div className="mt-4 space-y-3">
@@ -96,6 +99,7 @@ export default function UserDashboard() {
             ))}
           </div>
         </section>
+        </Link>
 
         {/* Payment History */}
         <section className="bg-white p-6 shadow-lg rounded-xl">
