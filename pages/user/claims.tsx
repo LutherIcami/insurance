@@ -7,6 +7,7 @@ interface Claim {
   description: string;
   status: string;
   createdAt: string;
+  attachmentUrl?: string;
 }
 
 export default function UserClaims() {
@@ -14,19 +15,21 @@ export default function UserClaims() {
   const [loading, setLoading] = useState(true);
   const [description, setDescription] = useState("");
   const [policyId, setPolicyId] = useState("");
-  const [error, setError] = useState<string | null>(null); // Set error to null initially
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchClaims() {
       try {
         const response = await fetch("/api/user/claims");
         if (!response.ok) throw new Error("Failed to fetch claims.");
-        
+
         const data = await response.json();
         setClaims(data);
-        setError(null); // Clear error if successful
+        setError(null);
       } catch (err) {
-        console.error("Error fetching claims:", err); // Now "err" is used
+        console.error("Error fetching claims:", err);
         setError("Failed to fetch claims.");
       } finally {
         setLoading(false);
@@ -37,11 +40,29 @@ export default function UserClaims() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setUploading(true);
     try {
+      let attachmentUrl = "";
+      
+      if (attachment) {
+        const formData = new FormData();
+        formData.append("file", attachment);
+        
+        const uploadResponse = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) throw new Error("File upload failed");
+
+        const uploadData = await uploadResponse.json();
+        attachmentUrl = uploadData.url;
+      }
+
       const response = await fetch("/api/user/claims", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ policyId, description }),
+        body: JSON.stringify({ policyId, description, attachmentUrl }),
       });
 
       if (!response.ok) throw new Error("Failed to submit claim");
@@ -50,10 +71,13 @@ export default function UserClaims() {
       setClaims([newClaim, ...claims]);
       setDescription("");
       setPolicyId("");
-      setError(null); // Clear error on successful submission
+      setAttachment(null);
+      setError(null);
     } catch (err) {
-        console.error("Error fetching claims:", err);
+      console.error("Error submitting claim:", err);
       setError("Failed to submit claim.");
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -63,10 +87,8 @@ export default function UserClaims() {
     <div className="max-w-3xl mx-auto p-6 bg-white shadow-lg rounded-lg">
       <h1 className="text-2xl font-bold text-gray-800 mb-4">Your Claims</h1>
 
-      {/* Show Error if Exists */}
       {error && <p className="text-red-500 mb-4">{error}</p>}
 
-      {/* Claims List */}
       <ul className="mb-6">
         {claims.length === 0 ? (
           <p className="text-gray-600">No claims found.</p>
@@ -81,6 +103,11 @@ export default function UserClaims() {
                   {claim.status}
                 </span>
               </p>
+              {claim.attachmentUrl && (
+                <p>
+                  <strong>Attachment:</strong> <a href={claim.attachmentUrl} target="_blank" className="text-blue-500 underline">View File</a>
+                </p>
+              )}
               <p className="text-sm text-gray-600">
                 {new Date(claim.createdAt).toLocaleDateString()}
               </p>
@@ -89,7 +116,6 @@ export default function UserClaims() {
         )}
       </ul>
 
-      {/* Submit New Claim Form */}
       <h2 className="text-xl font-bold mb-2">Submit a New Claim</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
@@ -107,8 +133,13 @@ export default function UserClaims() {
           className="w-full p-2 border rounded"
           required
         />
-        <button type="submit" className="bg-blue-500 text-white p-2 rounded flex items-center gap-2">
-          <FaPlusCircle /> Submit Claim
+        <input
+          type="file"
+          onChange={(e) => setAttachment(e.target.files ? e.target.files[0] : null)}
+          className="w-full p-2 border rounded"
+        />
+        <button type="submit" className="bg-blue-500 text-white p-2 rounded flex items-center gap-2" disabled={uploading}>
+          <FaPlusCircle /> {uploading ? "Submitting..." : "Submit Claim"}
         </button>
       </form>
     </div>
